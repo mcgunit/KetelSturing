@@ -20,7 +20,7 @@ unsigned long clearLCDTime = 250;
 unsigned long lastClearLCDTime = 0;
 
 const int heater = 2;     // Switch for external heating element
-const int relay2 = 3;     // Switch for external components
+const int overHeatProtection = 3;     // Switch for pump of circuit to use as overheating protection
 const int startButton = 5;
 const int stopButton = 6;
 const int jogButton = 7;
@@ -44,7 +44,7 @@ bool stopMode = false;
 bool keepingTemperature = false; // During stand-by mode if its trying to keep temperature this mode is active
 
 /* Timers */
-unsigned long startDuration = 15 * 60000;
+unsigned long startDuration = 30 * 60000;
 //unsigned long startDuration = 6000;
 unsigned long lastTimeStartActivated = 0;
 //unsigned long stopDuration = 5 * 60000;
@@ -59,7 +59,7 @@ void setup() {
     Serial.begin(9600);
 
     pinMode(heater, OUTPUT);
-    pinMode(relay2, OUTPUT);
+    pinMode(overHeatProtection, OUTPUT);
     pinMode(fwdDrive, OUTPUT);
 
     pinMode(startButton, INPUT);
@@ -130,8 +130,12 @@ void loop() {
         digitalWrite(heater, LOW);
 
         lcd.print("Max Temp");
-    } else {
 
+        // Activate overheat protection
+        digitalWrite(overHeatProtection, HIGH);
+    } else {
+        // Disable overheting protection
+        digitalWrite(overHeatProtection, LOW);
 
         if(frequencyValueRaw > minValidFreqActive) {
             driveActive = true;
@@ -209,7 +213,7 @@ void loop() {
             lcd.print(relativeTime/1000);
             digitalWrite(heater, HIGH);
 
-            if(relativeTime <= startDuration/2) {
+            if(relativeTime <= startDuration/0.1) {
                 if(!driveActive) {
                     digitalWrite(fwdDrive, HIGH);
                     driveActive = true;
