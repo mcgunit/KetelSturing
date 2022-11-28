@@ -44,7 +44,7 @@ bool stopMode = false;
 bool keepingTemperature = false; // During stand-by mode if its trying to keep temperature this mode is active
 
 /* Timers */
-unsigned long startDuration = 30 * 60000;
+unsigned long startDuration = 60 * 60000;
 //unsigned long startDuration = 6000;
 unsigned long lastTimeStartActivated = 0;
 //unsigned long stopDuration = 5 * 60000;
@@ -214,7 +214,7 @@ void loop() {
             digitalWrite(heater, HIGH);
 
             // On the verry last moment we need to start the blower for extra oxigen. Not to early because the blower can put out the coals
-            if(relativeTime <= startDuration/0.1) {
+            if(relativeTime <= startDuration/0.05) {
                 if(!driveActive) {
                     digitalWrite(fwdDrive, HIGH);
                     driveActive = true;
