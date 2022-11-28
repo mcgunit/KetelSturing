@@ -214,7 +214,8 @@ void loop() {
             digitalWrite(heater, HIGH);
 
             // On the verry last moment we need to start the blower for extra oxigen. Not to early because the blower can put out the coals
-            if(relativeTime <= startDuration/0.05) {
+            if(relativeTime <= (startDuration*0.05)) {
+                
                 if(!driveActive) {
                     digitalWrite(fwdDrive, HIGH);
                     driveActive = true;
