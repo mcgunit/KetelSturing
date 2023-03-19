@@ -11,7 +11,7 @@ OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire); // Needed for the temperature conversions
 float temperatureValueRaw = 0;  // Used for first reading
 float temperatureValue = 0; // Store the valid value
-float maxTemp = 90.0;
+float maxTemp = 80.0;
 float tempToKeep = 65.0; // Lower then this temperature we need to try to ignite 
 float minTemp = 32.0; // Below this temperature we will not try to keep temperature 
 
