@@ -36,7 +36,11 @@ bool driveActive = false;
 const int frequencyReadPin = A0;
 int frequencyValueRaw = 0;
 const int minValidFreqActive = 50;
-const int minValidFreqInActive = 10; 
+const int minValidFreqInActive = 10;
+unsigned long motorInAutoModeOnTime = (15 * 60000);
+unsigned long motorInAutoModeOffTime = (60 * 60000) - motorInAutoModeOnTime;
+unsigned long lastMotorAutoModeOn = 0;
+unsigned long lastMotorAutoModeOff = 0;
 
 /* Modes */
 bool startMode = false;
@@ -52,6 +56,7 @@ unsigned long stopDuration = 5000;
 unsigned long lastTimeStopActivated = 0;
 unsigned long timeRequestTemp = 1000;          // Do not fetch faster then every 1 sec
 unsigned long timeLastRequestedTemp = 0;
+
 
 void setup() {
     
@@ -122,6 +127,14 @@ void loop() {
     lcd.print(temperatureValue);
 
     lcd.setCursor(1,1);
+
+    if((millis() - lastMotorAutoModeOff) > motorInAutoModeOffTime) {
+
+        lastMotorAutoModeOn = millis();        
+    } else if((millis() - lastMotorAutoModeOn) > motorInAutoModeOnTime) {
+
+        lastMotorAutoModeOff = millis();
+    }
 
     if(temperatureValue >= maxTemp) {
             
