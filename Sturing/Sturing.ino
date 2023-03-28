@@ -40,7 +40,7 @@ const int minValidFreqInActive = 10;
 unsigned long motorInAutoModeOnTime = (15 * 60000);
 unsigned long motorInAutoModeOffTime = (60 * 60000) - motorInAutoModeOnTime;
 unsigned long lastMotorAutoModeOn = 0;
-unsigned long lastMotorAutoModeOff = 0;
+unsigned long lastMotorAutoModeOff = motorInAutoModeOffTime; // Initial value
 
 /* Modes */
 bool startMode = false;
@@ -48,7 +48,7 @@ bool stopMode = false;
 bool keepingTemperature = false; // During stand-by mode if its trying to keep temperature this mode is active
 
 /* Timers */
-unsigned long startDuration = 60 * 60000;
+unsigned long startDuration = 45 * 60000;
 //unsigned long startDuration = 6000;
 unsigned long lastTimeStartActivated = 0;
 //unsigned long stopDuration = 5 * 60000;
@@ -128,13 +128,6 @@ void loop() {
 
     lcd.setCursor(1,1);
 
-    if((millis() - lastMotorAutoModeOff) > motorInAutoModeOffTime) {
-
-        lastMotorAutoModeOn = millis();        
-    } else if((millis() - lastMotorAutoModeOn) > motorInAutoModeOnTime) {
-
-        lastMotorAutoModeOff = millis();
-    }
 
     if(temperatureValue >= maxTemp) {
             
@@ -159,7 +152,8 @@ void loop() {
 
         // Stand-by mode (Try to maintain temperature)
         if(!startMode && !stopMode) {
-            
+            /* Just to be sure the heater goes off*/
+            digitalWrite(heater, LOW);
             
 
             if(jogButtonState) {
@@ -169,12 +163,26 @@ void loop() {
                 if(temperatureValue < minTemp) {
                     lcd.print("Temp to low");
                 } else if(temperatureValue > tempToKeep) {
-                    lcd.print("Temp Reached");
+                    
+                    /* Trying to keep the caols burning a bit*/
+                    if((millis() - lastMotorAutoModeOff) > motorInAutoModeOffTime) {
+                        if(!driveActive) { 
+                            digitalWrite(fwdDrive, HIGH);  
+                        }
+                        lcd.print("Temp Reached, burning");
+                        lastMotorAutoModeOff = millis();
+                        lastMotorAutoModeOn = millis();
+                    } else if((millis() - lastMotorAutoModeOn) > motorInAutoModeOnTime) {
+                        if(driveActive) { 
+                            digitalWrite(fwdDrive, LOW);
+                        }
+                        lcd.print("Temp Reached, waiting");
+                    }
                 } else {
                     lcd.print("Stand-by");
                 }
                 
-                digitalWrite(fwdDrive, LOW);
+                //digitalWrite(fwdDrive, LOW);
             }
 
             if(temperatureValue <= tempToKeep && temperatureValue >= minTemp && !jogButtonState) {
@@ -187,9 +195,11 @@ void loop() {
 
             if(temperatureValue > tempToKeep && keepingTemperature && !jogButtonState) {
                 keepingTemperature = false;
+                
                 if(!driveActive) {
                     digitalWrite(fwdDrive, LOW);
                 }
+                
             }
 
 
