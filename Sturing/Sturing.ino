@@ -24,6 +24,7 @@ const int overHeatProtection = 3;     // Switch for pump of circuit to use as ov
 const int startButton = 5;
 const int stopButton = 6;
 const int jogButton = 7;
+const int internalLED = 13;
 
 /* Button States */
 bool startButtonState = false;
@@ -39,6 +40,8 @@ const int minValidFreqActive = 50;
 const int minValidFreqInActive = 10;
 unsigned long motorInAutoModeOnTime = (15 * 60000);
 unsigned long motorInAutoModeOffTime = (60 * 60000) - motorInAutoModeOnTime;
+//unsigned long motorInAutoModeOnTime = 5000;
+//unsigned long motorInAutoModeOffTime = 20000 - motorInAutoModeOnTime;
 unsigned long lastMotorAutoModeOn = 0;
 unsigned long lastMotorAutoModeOff = motorInAutoModeOffTime; // Initial value
 
@@ -46,6 +49,8 @@ unsigned long lastMotorAutoModeOff = motorInAutoModeOffTime; // Initial value
 bool startMode = false;
 bool stopMode = false;
 bool keepingTemperature = false; // During stand-by mode if its trying to keep temperature this mode is active
+bool tryToBurn = false;
+bool waitingBeforeBurn = false;
 
 /* Timers */
 unsigned long startDuration = 45 * 60000;
@@ -57,6 +62,8 @@ unsigned long lastTimeStopActivated = 0;
 unsigned long timeRequestTemp = 1000;          // Do not fetch faster then every 1 sec
 unsigned long timeLastRequestedTemp = 0;
 
+/* LED State */
+bool onBoardLedState = false;
 
 void setup() {
     
@@ -66,6 +73,7 @@ void setup() {
     pinMode(heater, OUTPUT);
     pinMode(overHeatProtection, OUTPUT);
     pinMode(fwdDrive, OUTPUT);
+    pinMode(internalLED, OUTPUT);
 
     pinMode(startButton, INPUT);
     pinMode(stopButton, INPUT);
@@ -97,6 +105,14 @@ void loop() {
 
         if(temperatureValueRaw > -30) {
             temperatureValue = temperatureValueRaw;
+        }
+
+        if(onBoardLedState) {
+            digitalWrite(internalLED, LOW);
+            onBoardLedState = false;
+        } else {
+            digitalWrite(internalLED, HIGH);
+            onBoardLedState = true;
         }
 
         //Serial.print(temperatureValue);
@@ -163,21 +179,15 @@ void loop() {
                 if(temperatureValue < minTemp) {
                     lcd.print("Temp to low");
                 } else if(temperatureValue > tempToKeep) {
-                    
-                    /* Trying to keep the caols burning a bit*/
-                    if((millis() - lastMotorAutoModeOff) > motorInAutoModeOffTime) {
-                        if(!driveActive) { 
-                            digitalWrite(fwdDrive, HIGH);  
-                        }
-                        lcd.print("Temp Reached, burning");
-                        lastMotorAutoModeOff = millis();
-                        lastMotorAutoModeOn = millis();
-                    } else if((millis() - lastMotorAutoModeOn) > motorInAutoModeOnTime) {
-                        if(driveActive) { 
-                            digitalWrite(fwdDrive, LOW);
-                        }
-                        lcd.print("Temp Reached, waiting");
+                    if(tryToBurn){
+                        lcd.print("Burning: ");
+                        lcd.print((int)(millis() - lastMotorAutoModeOn)/1000);
+                    }else if(waitingBeforeBurn){
+                        lcd.print("Waiting: ");
+                        lcd.print((int)(millis() - lastMotorAutoModeOff)/1000);
                     }
+                     
+                    
                 } else {
                     lcd.print("Stand-by");
                 }
@@ -253,9 +263,26 @@ void loop() {
         } else if(!startMode) {
             digitalWrite(heater, LOW);
 
-            if(driveActive && !jogButtonState && !keepingTemperature) {
-                digitalWrite(fwdDrive, LOW);
-                driveActive = false;
+            if(!jogButtonState && !keepingTemperature) {
+                /* Auto mode after reaching temperature */
+                /* Trying to keep the caols burning a bit*/
+                if((millis() - lastMotorAutoModeOff) > motorInAutoModeOffTime) {
+                    if(!driveActive) { 
+                        digitalWrite(fwdDrive, HIGH);  
+                    }
+                    
+                    tryToBurn = true;
+                    waitingBeforeBurn = false;
+                    lastMotorAutoModeOff = millis();
+                    lastMotorAutoModeOn = millis();
+                } else if((millis() - lastMotorAutoModeOn) > motorInAutoModeOnTime) {
+                    if(driveActive) { 
+                        digitalWrite(fwdDrive, LOW);
+                    }
+                    
+                    tryToBurn = false;
+                    waitingBeforeBurn = true;
+                }
             }
             
         }
